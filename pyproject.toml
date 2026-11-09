@@ -7,7 +7,7 @@ name = "chamber-apc"
 version = "1.0.0"
 description = "Local control panel and mock device for chamber pressure regulation"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = "GPL-3.0-or-later"
 license-files = ["LICENSE"]
 dynamic = ["dependencies"]

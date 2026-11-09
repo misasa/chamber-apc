@@ -4,7 +4,7 @@ Chamber APC is a Python package for automatic pressure control in a chamber. It 
 
 ## Dependency
 
-- Python 3.10以上（Windows / macOS）
+- Python 3.9以上（Windows / macOS）
 
 インストール時に依存ライブラリ（Flask、Werkzeug、HTTPX、Trio）も入ります。通信はPython内のHTTPXで行います。curlなどの外部通信コマンドは不要です。
 
