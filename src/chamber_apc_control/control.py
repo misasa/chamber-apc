@@ -44,7 +44,7 @@ PARAMETER = "APC_P_SV"
 #             (the page's To and Ramp time, with no file). This is the only
 #             difference between schedules.
 CSV_COLUMNS = ("date", "time", "pressure")
-CSV_HEADER = ",".join(CSV_COLUMNS)
+CSV_HEADER = ", ".join(CSV_COLUMNS)
 CSV_DATETIME_COLUMN = "datetime"
 CSV_PRESSURE_COLUMN = "P (hPa)"
 RUN_BIT = 1 << 0
@@ -991,7 +991,7 @@ def _parse_schedule_datetime(text):
 def schedule_csv_text(rows) -> str:
     """Return (datetime, setpoint text) rows in the format read_schedule accepts."""
     lines = [CSV_HEADER]
-    lines += [f"{when.date().isoformat()},{when.time().isoformat()},{value}" for when, value in rows]
+    lines += [f"{when.date().isoformat()}, {when.time().isoformat()}, {value}" for when, value in rows]
     return "\n".join(lines) + "\n"
 
 
@@ -1394,7 +1394,7 @@ def index():
     last_to = request.args.get("to")
     if last_to is None:
         last_to = f"{scheduler.plan[0]:g}" if scheduler.plan else ""
-    return render_template_string(PAGE, device_url=DEVICE_URL, csv_example_header=", ".join(CSV_COLUMNS),
+    return render_template_string(PAGE, device_url=DEVICE_URL, csv_example_header=CSV_HEADER,
                                   schedule_name=schedule["name"] or "None",
                                   schedule_kind={"file": "File", "ramp": "Ramp", "now": "Now"}.get(schedule["kind"], "Schedule"),
                                   scheduler_state=schedule["state"],
