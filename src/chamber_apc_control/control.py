@@ -235,7 +235,7 @@ button.stop{background:#a83e3e}#regulation-toggle{background:var(--lamp-off);bor
 </div></form>
 <div id="file-fields" {{ 'hidden' if source_choice != 'file' else '' }}>
 <details class="csv-format"><summary>CSV format</summary>
-<pre id="csv-example">{{ csv_header }}
+<pre id="csv-example">{{ csv_example_header }}
 (an example appears when APC_P_SV is read)</pre>
 </details>
 <form id="schedule-upload" class="csv-upload-form" method="post" action="{{ url_for('upload_schedule') }}" enctype="multipart/form-data"><div class="file-control"><label class="file-picker" for="csv_file">Choose File</label><input class="csv-file-input" id="csv_file" name="csv_file" type="file" accept=".csv,text/csv"><span class="selected-file" id="selected-csv"></span></div></form>
@@ -284,11 +284,11 @@ function csvExample(pressure,now){
     const start=new Date(now);
     start.setMinutes(0,0,0);
     start.setHours(start.getHours()+1);
-    const lines=[{{ csv_header|tojson }}];
+    const lines=[{{ csv_example_header|tojson }}];
     for(let offset=0;offset<=600;offset+=30){
-        const stamp=chartStamp(start.getTime()+offset*1000).replace(' ', ',');
+        const stamp=chartStamp(start.getTime()+offset*1000).replace(' ', ', ');
         const value=(pressure*(1-0.1*offset/600)).toFixed(2);
-        lines.push(`${stamp},${value}`);
+        lines.push(`${stamp}, ${value}`);
     }
     return lines.join('\n');
 }
@@ -1394,7 +1394,7 @@ def index():
     last_to = request.args.get("to")
     if last_to is None:
         last_to = f"{scheduler.plan[0]:g}" if scheduler.plan else ""
-    return render_template_string(PAGE, device_url=DEVICE_URL, csv_header=CSV_HEADER,
+    return render_template_string(PAGE, device_url=DEVICE_URL, csv_example_header=", ".join(CSV_COLUMNS),
                                   schedule_name=schedule["name"] or "None",
                                   schedule_kind={"file": "File", "ramp": "Ramp", "now": "Now"}.get(schedule["kind"], "Schedule"),
                                   scheduler_state=schedule["state"],
