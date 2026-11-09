@@ -47,7 +47,8 @@ class CSVMessageTests(InterfaceTestCase):
                  ('datetime,P (hPa)\n2030-01-01 10:00:00\n', "CSV line 2: Pressure must be a number in hPa (got '')"),
                  ('datetime,P (hPa)\n2030-01-01 10:00:00,1_000\n', 'CSV line 2: Pressure must be a number'),
                  ('datetime,P (hPa)\n2030-01-01 10:00:00,inf\n', 'CSV line 2: Pressure must be a finite number'),
-                 ('time,P (hPa)\n2030-01-01 10:00:00,12\n', 'must contain datetime and P (hPa)'),
+                 ('date,pressure\n2030-01-01,12\n', 'must contain date, time, and pressure'),
+                 ('date,time,pressure\n2030-01-01,10:00:00+09:00,12\n', 'local times without a timezone'),
                  ('datetime,P (hPa)\n', 'no schedule rows')]
         for content, message in cases:
             with self.subTest(message=message):

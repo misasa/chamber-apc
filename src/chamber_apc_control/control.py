@@ -43,6 +43,8 @@ PARAMETER = "APC_P_SV"
 #   source    Where a schedule came from: "file" (an uploaded CSV) or "set"
 #             (the page's To and Ramp time, with no file). This is the only
 #             difference between schedules.
+CSV_COLUMNS = ("date", "time", "pressure")
+CSV_HEADER = ",".join(CSV_COLUMNS)
 CSV_DATETIME_COLUMN = "datetime"
 CSV_PRESSURE_COLUMN = "P (hPa)"
 RUN_BIT = 1 << 0
@@ -233,7 +235,7 @@ button.stop{background:#a83e3e}#regulation-toggle{background:var(--lamp-off);bor
 </div></form>
 <div id="file-fields" {{ 'hidden' if source_choice != 'file' else '' }}>
 <details class="csv-format"><summary>CSV format</summary>
-<pre id="csv-example">datetime, P (hPa)
+<pre id="csv-example">{{ csv_header }}
 (an example appears when APC_P_SV is read)</pre>
 </details>
 <form id="schedule-upload" class="csv-upload-form" method="post" action="{{ url_for('upload_schedule') }}" enctype="multipart/form-data"><div class="file-control"><label class="file-picker" for="csv_file">Choose File</label><input class="csv-file-input" id="csv_file" name="csv_file" type="file" accept=".csv,text/csv"><span class="selected-file" id="selected-csv"></span></div></form>
@@ -282,8 +284,12 @@ function csvExample(pressure,now){
     const start=new Date(now);
     start.setMinutes(0,0,0);
     start.setHours(start.getHours()+1);
-    const lines=['datetime, P (hPa)'];
-    for(let offset=0;offset<=600;offset+=30)lines.push(`${chartStamp(start.getTime()+offset*1000)}, ${(pressure*(1-0.1*offset/600)).toFixed(2)}`);
+    const lines=[{{ csv_header|tojson }}];
+    for(let offset=0;offset<=600;offset+=30){
+        const stamp=chartStamp(start.getTime()+offset*1000).replace(' ', ',');
+        const value=(pressure*(1-0.1*offset/600)).toFixed(2);
+        lines.push(`${stamp},${value}`);
+    }
     return lines.join('\n');
 }
 function updateCsvExample(){
@@ -984,8 +990,8 @@ def _parse_schedule_datetime(text):
 
 def schedule_csv_text(rows) -> str:
     """Return (datetime, setpoint text) rows in the format read_schedule accepts."""
-    lines = [f"{CSV_DATETIME_COLUMN}, {CSV_PRESSURE_COLUMN}"]
-    lines += [f"{when.strftime('%Y-%m-%d %H:%M:%S')}, {value}" for when, value in rows]
+    lines = [CSV_HEADER]
+    lines += [f"{when.date().isoformat()},{when.time().isoformat()},{value}" for when, value in rows]
     return "\n".join(lines) + "\n"
 
 
@@ -1006,9 +1012,10 @@ def parse_schedule(f) -> list[dict]:
         reader.fieldnames = [h.strip() for h in reader.fieldnames]
         if len(reader.fieldnames) != len(set(reader.fieldnames)):
             raise ValueError("CSV contains duplicate column names")
-        required = {CSV_DATETIME_COLUMN, CSV_PRESSURE_COLUMN}
-        if not required.issubset(reader.fieldnames):
-            raise ValueError("CSV must contain datetime and P (hPa) columns")
+        split_columns = set(CSV_COLUMNS).issubset(reader.fieldnames)
+        legacy_columns = {CSV_DATETIME_COLUMN, CSV_PRESSURE_COLUMN}
+        if not split_columns and not legacy_columns.issubset(reader.fieldnames):
+            raise ValueError("CSV must contain date, time, and pressure columns (or datetime and P (hPa) columns)")
         for raw in reader:
             n = reader.line_num
             if None in raw:
@@ -1016,6 +1023,9 @@ def parse_schedule(f) -> list[dict]:
             row = {k.strip(): (v or "").strip() for k, v in raw.items()}
             if not any(row.values()):
                 continue
+            if split_columns:
+                row[CSV_DATETIME_COLUMN] = f"{row['date']} {row['time']}"
+                row[CSV_PRESSURE_COLUMN] = row["pressure"]
             try:
                 when = _parse_schedule_datetime(row[CSV_DATETIME_COLUMN])
                 value_url(row[CSV_PRESSURE_COLUMN])
@@ -1384,7 +1394,7 @@ def index():
     last_to = request.args.get("to")
     if last_to is None:
         last_to = f"{scheduler.plan[0]:g}" if scheduler.plan else ""
-    return render_template_string(PAGE, device_url=DEVICE_URL,
+    return render_template_string(PAGE, device_url=DEVICE_URL, csv_header=CSV_HEADER,
                                   schedule_name=schedule["name"] or "None",
                                   schedule_kind={"file": "File", "ramp": "Ramp", "now": "Now"}.get(schedule["kind"], "Schedule"),
                                   scheduler_state=schedule["state"],

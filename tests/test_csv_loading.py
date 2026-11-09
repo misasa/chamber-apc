@@ -33,12 +33,13 @@ class CSVLoadingTests(unittest.TestCase):
             text = f'datetime,P (hPa)\n{self.base.isoformat()},12.5\n{(self.base + timedelta(seconds=2)).isoformat()},11.5\n'
         return self.client.post('/schedule/upload', data={'csv_file': (io.BytesIO(text.encode()), filename)})
 
-    def test_loading_updates_filename_and_preview_without_starting_or_sending(self):
-        response = self.upload()
+    def test_loading_split_datetime_updates_preview_without_starting_or_sending(self):
+        response = self.upload(text=f'date,time,pressure\n{self.base.date()},{self.base.time()},12.5\n')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json['state'], 'ready')
         self.assertEqual(response.json['name'], 'cycle.csv')
         self.assertEqual(response.json['pressure'], '12.5')
+        self.assertEqual(response.json['datetime'], self.base.strftime('%Y-%m-%d %H:%M:%S'))
         self.assertIn('cycle.csv', self.client.get('/').text)
         self.runner.tick(now=self.base + timedelta(seconds=3))
         self.assertEqual(self.sent, [])

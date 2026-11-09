@@ -264,9 +264,9 @@ class FrontendTests(unittest.TestCase):
             return {{live: [live.length, live[0], live[1].slice(13), live[21].slice(13)], fixed: [fixed[1], fixed[2], fixed[21]], midnight}};
         ''')
         self.assertIn('appears when APC_P_SV is read', control.app.test_client().get('/').text)
-        self.assertEqual(result['live'], [22, 'datetime, P (hPa)', ':00:00, 60.00', ':10:00, 54.00'])
-        self.assertEqual(result['fixed'], ['2026-11-08 16:00:00, 60.00', '2026-11-08 16:00:30, 59.70', '2026-11-08 16:10:00, 54.00'])
-        self.assertEqual(result['midnight'], '2026-11-09 00:00:00, 50.00')
+        self.assertEqual(result['live'], [22, 'date,time,pressure', ':00:00,60.00', ':10:00,54.00'])
+        self.assertEqual(result['fixed'], ['2026-11-08,16:00:00,60.00', '2026-11-08,16:00:30,59.70', '2026-11-08,16:10:00,54.00'])
+        self.assertEqual(result['midnight'], '2026-11-09,00:00:00,50.00')
 
     def test_go_needs_remote_even_while_regulating(self):
         result = self.run_page(f'''

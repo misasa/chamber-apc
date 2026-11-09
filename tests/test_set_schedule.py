@@ -72,6 +72,7 @@ class SetScheduleTests(MockDeviceMixin, unittest.TestCase):
         self.post('44', '30')
         response = self.client.get('/schedule/csv')
         self.assertEqual(response.mimetype, 'text/plain')
+        self.assertEqual(response.text.splitlines()[0], 'date,time,pressure')
         self.assertEqual(response.headers['Content-Disposition'], "inline; filename*=UTF-8''schedule.csv")
         rows = control.parse_schedule(io.StringIO(response.text, newline=''))
         self.assertEqual([(r['_when'], r['P (hPa)']) for r in rows], [(r['_when'], r['P (hPa)']) for r in self.runner.rows])
@@ -79,7 +80,9 @@ class SetScheduleTests(MockDeviceMixin, unittest.TestCase):
         self.upload_future_csv('cycle.csv')
         response = self.client.get('/schedule/csv')
         self.assertIn('cycle.csv', response.headers['Content-Disposition'])
-        self.assertTrue(response.text.startswith('datetime, P (hPa)\n'))
+        self.assertEqual(response.text.splitlines()[0], 'date,time,pressure')
+        rows = control.parse_schedule(io.StringIO(response.text, newline=''))
+        self.assertEqual([(r['_when'], r['P (hPa)']) for r in rows], [(r['_when'], r['P (hPa)']) for r in self.runner.rows])
         self.assertEqual(self.schedule()['source'], 'file')
 
     def test_one_row_is_due_immediately_and_the_worker_path_sends_it(self):
