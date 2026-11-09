@@ -9,13 +9,13 @@ import unittest
 from unittest.mock import patch
 
 from werkzeug.serving import make_server
-from support import Clock, QuietHandler, control
+from support import Clock, QuietHandler, control, mock_device
 
 
 class BrowserTests(unittest.TestCase):
     def test_only_browser_activity_delays_reopening_and_attempts_are_one_minute_apart(self):
         clock = Clock()
-        with patch.object(control.time, 'monotonic', clock.monotonic), patch.object(control.webbrowser, 'open') as opener:
+        with patch.object(control.time, 'monotonic', clock.monotonic), patch('webbrowser.open') as opener:
             activity = control.BrowserActivity()
             clock.now = 59
             activity.reopen_if_idle('http://127.0.0.1:5000/')
@@ -42,7 +42,7 @@ class BrowserTests(unittest.TestCase):
 
     def test_failed_browser_launch_is_rate_limited(self):
         clock = Clock()
-        with patch.object(control.time, 'monotonic', clock.monotonic), patch.object(control.webbrowser, 'open', side_effect=OSError('unavailable')) as opener:
+        with patch.object(control.time, 'monotonic', clock.monotonic), patch('webbrowser.open', side_effect=OSError('unavailable')) as opener:
             activity = control.BrowserActivity()
             clock.now = 60
             with self.assertLogs(level='ERROR'):
@@ -67,7 +67,7 @@ class BrowserTests(unittest.TestCase):
                 with self.subTest(no_browser=no_browser):
                     with patch.dict(os.environ, {'APC_PORT': str(server.server_port), 'APC_NO_BROWSER': '0'}), \
                          patch.object(control.sys, 'argv', ['chamber-apc-control'] + (['--no-browser'] if no_browser else [])), \
-                         patch.object(control.webbrowser, 'open', return_value=True) as opener, \
+                         patch('webbrowser.open', return_value=True) as opener, \
                          patch.object(control.threading, 'Timer') as timer, \
                          patch.object(control.app, 'run') as run, \
                          redirect_stdout(io.StringIO()) as console:
@@ -83,3 +83,28 @@ class BrowserTests(unittest.TestCase):
             server.shutdown()
             server.server_close()
             thread.join(2)
+
+
+class MockBrowserTests(unittest.TestCase):
+    def test_mock_opens_the_bound_port_at_startup_unless_disabled(self):
+        for args, env_value, expected in (
+            ([], '0', True),
+            (['--no-browser'], '0', False),
+            ([], '1', False),
+        ):
+            with self.subTest(args=args, env_value=env_value):
+                opened = threading.Event()
+                with patch.dict(os.environ, {'APC_NO_BROWSER': env_value}), \
+                     patch('sys.argv', ['chamber-apc-mock', '--port', '0', *args]), \
+                     patch.object(mock_device, 'make_server') as make_server, \
+                     patch('webbrowser.open', side_effect=lambda url: opened.set() or True) as opener, \
+                     redirect_stdout(io.StringIO()):
+                    server = make_server.return_value.__enter__.return_value
+                    server.server_port = 8123
+                    if expected:
+                        server.serve_forever.side_effect = lambda: opened.wait(2)
+                    mock_device.main()
+                if expected:
+                    opener.assert_called_once_with('http://127.0.0.1:8123/')
+                else:
+                    opener.assert_not_called()

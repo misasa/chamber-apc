@@ -14,7 +14,6 @@ import sys
 import threading
 import tempfile
 import time
-import webbrowser
 from logging.handlers import RotatingFileHandler
 from collections import deque
 from datetime import datetime, timedelta
@@ -29,6 +28,8 @@ from flask import Flask, Response, flash, jsonify, redirect, render_template_str
 from flask import cli as flask_cli
 from werkzeug.exceptions import HTTPException, RequestEntityTooLarge
 from werkzeug.utils import secure_filename
+
+from ._browser import TRUE_VALUES, open_browser as _open_browser
 
 DATA_DIR = Path(os.environ.get("APC_DATA_DIR", Path.home() / "deleteme.d" / datetime.now().strftime("%Y-%m")))
 UPLOAD_DIR = DATA_DIR / "chamber-apc-control-schedules"
@@ -96,7 +97,6 @@ try:
     LOG_DISPLAY_LIMIT = max(10, min(1000, int(os.environ.get("LOG_DISPLAY_LIMIT", "100"))))
 except ValueError:
     LOG_DISPLAY_LIMIT = 100
-TRUE_VALUES = {"1", "true", "yes", "on"}
 DEBUG_MODE = "--debug" in sys.argv[1:] or os.environ.get("APP_DEBUG", "").lower() in TRUE_VALUES
 
 logging.basicConfig(handlers=[RotatingFileHandler(LOG_PATH, maxBytes=5_000_000, backupCount=3, encoding="utf-8")],
@@ -128,13 +128,6 @@ MAX_UPLOAD_MIB = 5
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_MIB * 1024 * 1024
 # The session only carries one-time flash messages, so it need not survive a restart.
 app.secret_key = os.environ.get("FLASK_SECRET_KEY") or secrets.token_hex(32)
-
-def _open_browser(url):
-    try:
-        if not webbrowser.open(url):
-            logging.warning("Could not open browser: %s", url)
-    except Exception:
-        logging.exception("Could not open browser: %s", url)
 
 
 class BrowserActivity:

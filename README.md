@@ -36,7 +36,8 @@ Windowsでは `python -m venv .venv`、有効化は `cmd.exe` で `.venv\Scripts
 
 ## Usage
 
-模擬装置を１つ目のターミナルで起動します。
+模擬装置を１つ目のターミナルで起動すると、模擬装置の画面がブラウザで開きます。
+自動で開く必要がない場合は `chamber-apc-mock --no-browser` または `APC_NO_BROWSER=1` を使います。
 
 ```sh
 chamber-apc-mock

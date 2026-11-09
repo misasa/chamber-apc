@@ -19,6 +19,9 @@ from collections import Counter, deque
 from datetime import datetime
 
 from flask import Flask, Response, g, jsonify, redirect, render_template_string, request, url_for
+from werkzeug.serving import make_server
+
+from ._browser import TRUE_VALUES, open_browser
 
 # Test APC_STATUS_PV
 # http://127.0.0.1:8001/WeatherMonitor/Set_Mock_Status?APC_STATUS_PV=15
@@ -441,10 +444,16 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--port", type=int, default=int(os.environ.get("MOCK_PORT", "8001")),
                         help="listening port on 127.0.0.1 (default: MOCK_PORT or 8001)")
-    port = parser.parse_args().port
-    print(f"Mock device page: http://127.0.0.1:{port}/", flush=True)
-    print(f"Mock device API: http://127.0.0.1:{port}/WeatherMonitor/", flush=True)
-    app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)
+    parser.add_argument("--no-browser", action="store_true", help="do not open the mock device page")
+    args = parser.parse_args()
+    host = "127.0.0.1"
+    with make_server(host, args.port, app, threaded=True) as server:
+        url = f"http://{host}:{server.server_port}/"
+        print(f"Mock device page: {url}", flush=True)
+        print(f"Mock device API: {url}WeatherMonitor/", flush=True)
+        if not args.no_browser and os.environ.get("APC_NO_BROWSER", "").lower() not in TRUE_VALUES:
+            threading.Thread(target=open_browser, args=(url,), daemon=True).start()
+        server.serve_forever()
 
 
 if __name__ == "__main__":

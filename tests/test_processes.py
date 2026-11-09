@@ -70,7 +70,7 @@ class ProcessTests(unittest.TestCase):
             device_port, panel_port = free_port(), free_port()
             device_url = f'http://127.0.0.1:{device_port}'
             panel_url = f'http://127.0.0.1:{panel_port}'
-            self.start('chamber-apc-mock', {}, '--port', str(device_port))
+            self.start('chamber-apc-mock', {}, '--no-browser', '--port', str(device_port))
             self.start('chamber-apc-control',
                        {'APC_PORT': str(panel_port), 'APC_NO_BROWSER': '1', 'APC_DATA_DIR': directory,
                         'DEVICE_BASE_URL': f'{device_url}/WeatherMonitor/'})
